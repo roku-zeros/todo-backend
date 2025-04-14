@@ -1,0 +1,43 @@
+x-env: &env
+  POSTGRES_HOST: ${POSTGRES_HOST}
+  POSTGRES_PORT: ${POSTGRES_PORT}
+  POSTGRES_USER_FILE: /run/secrets/postgres_user
+  POSTGRES_PASS_FILE: /run/secrets/postgres_password
+
+x-secrets: &secrets
+  - postgres_user
+  - postgres_password
+
+secrets:
+  postgres_user:
+    environment: POSTGRES_USER
+  postgres_password:
+    environment: POSTGRES_PASSWORD
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./db/postgres/data:/var/lib/postgresql/data
+      - ./db/postgres/init:/docker-entrypoint-initdb.d
+
+  task:
+    build:
+      context: .
+      dockerfile: ./services/task/Dockerfile
+    depends_on:
+      - postgres
+    environment: *env
+    secrets: *secrets
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    ports:
+      - "8081:8081"
+    environment:
+      - SWAGGER_JSON=/swagger/swagger.yaml
+    volumes:
+      - ./services/task/docs/api/v1:/swagger
