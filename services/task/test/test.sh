@@ -1,8 +1,7 @@
 #!/bin/bash
 
-API_URL="http://localhost:8080/v1" # Замените на ваш URL
+API_URL="http://localhost:8080/v1"
 
-# Функция для проверки статуса ответа
 check_status() {
     local expected_status=$1
     local actual_status=$2
@@ -22,7 +21,7 @@ check_status 200 "$response" "Ping не удался"
 echo "Тест 2: Создание задачи"
 create_response=$(curl -s -X POST "$API_URL/tasks" -H "Content-Type: application/json" -d '{"title": "Тестовая задача", "description": "Описание тестовой задачи", "completed": false}')
 create_status=$(echo "$create_response" | jq -r '.id')
-check_status 201 "$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/tasks/$create_status")" "Создание задачи не удалось"
+check_status 200 "$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/tasks/$create_status")" "Создание задачи не удалось"
 
 # Тест 3: Получение задач
 echo "Тест 3: Получение задач"

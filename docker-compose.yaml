@@ -2,7 +2,7 @@ x-env: &env
   POSTGRES_HOST: ${POSTGRES_HOST}
   POSTGRES_PORT: ${POSTGRES_PORT}
   POSTGRES_USER_FILE: /run/secrets/postgres_user
-  POSTGRES_PASS_FILE: /run/secrets/postgres_password
+  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
 
 x-secrets: &secrets
   - postgres_user
@@ -15,28 +15,35 @@ secrets:
     environment: POSTGRES_PASSWORD
 
 services:
+  task:
+    build:
+      context: .
+      dockerfile: ./services/task/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: *env
+    secrets: *secrets
+    ports:
+      - "8080:8080"
+
   postgres:
     image: postgres:latest
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./db/postgres/data:/var/lib/postgresql/data
-      - ./db/postgres/init:/docker-entrypoint-initdb.d
-
-  task:
-    build:
-      context: .
-      dockerfile: ./services/task/Dockerfile
-    depends_on:
-      - postgres
-    environment: *env
-    secrets: *secrets
+      - ./services/task/migrations/postgres:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   swagger-ui:
     image: swaggerapi/swagger-ui
     ports:
-      - "8081:8081"
+      - "8081:8080"
     environment:
       - SWAGGER_JSON=/swagger/swagger.yaml
     volumes:
